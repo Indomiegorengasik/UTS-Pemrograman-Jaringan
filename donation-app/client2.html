@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client 2 - Penerima Donasi</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #e0f7fa;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            width: 420px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #00796b;
+            font-weight: 700;
+            margin: 0;
+            font-size: 24px;
+        }
+
+        h2 {
+            color: #004d40;
+            font-weight: 500;
+            margin: 10px 0 20px;
+            font-size: 18px;
+        }
+
+        #notificationBox {
+            border: 2px solid #b2dfdb;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+            background-color: #e0f2f1;
+            border-radius: 8px;
+        }
+
+        .message {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 8px;
+            background-color: #d1c4e9;
+            border: 1px solid #9575cd;
+            transition: opacity 0.5s ease-out;
+            animation: slideIn 0.4s ease forwards;
+        }
+
+        .message-icon {
+            font-size: 24px;
+            color: #7e57c2;
+        }
+
+        .message-text {
+            font-size: 16px;
+            color: #512da8;
+            font-weight: 500;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Penerima Donasi</h1>
+        <h2>Notifikasi Donasi Masuk</h2>
+        <div id="notificationBox"></div>
+    </div>
+
+    <script>
+        let socket = new WebSocket("ws://" + window.location.host + "/ws");
+
+        socket.onopen = function() {
+            console.log("WebSocket connection established.");
+        };
+
+        socket.onmessage = function(event) {
+            let notificationBox = document.getElementById("notificationBox");
+            let message = document.createElement("div");
+            message.className = "message";
+            
+            // Add an icon to each message
+            let icon = document.createElement("span");
+            icon.className = "message-icon";
+            icon.textContent = "💸";
+            message.appendChild(icon);
+
+            let text = document.createElement("span");
+            text.className = "message-text";
+            text.textContent = formatRupiah(event.data);
+            message.appendChild(text);
+
+            notificationBox.appendChild(message);
+            notificationBox.scrollTop = notificationBox.scrollHeight;
+
+            // Remove the message after 5 seconds
+            setTimeout(function() {
+                message.style.opacity = 0; // Fade out
+                setTimeout(function() {
+                    notificationBox.removeChild(message); // Remove from DOM
+                }, 500); // Wait for fade out to complete
+            }, 5000);
+        };
+
+        socket.onerror = function(error) {
+            console.error("WebSocket error:", error);
+        };
+
+        socket.onclose = function() {
+            console.log("WebSocket connection closed.");
+        };
+
+        // Function to format numbers as Rupiah
+        function formatRupiah(amount) {
+            let numberString = amount.replace(/[^,\d]/g, '').toString();
+            let split = numberString.split(',');
+            let remainder = split[0].length % 3;
+            let rupiah = split[0].substr(0, remainder);
+            let thousands = split[0].substr(remainder).match(/\d{3}/gi);
+            
+            // Add thousands separators
+            if (thousands) {
+                let separator = remainder ? '.' : '';
+                rupiah += separator + thousands.join('.');
+            }
+
+            rupiah = split[1] !== undefined ? rupiah + ',' + split[1] : rupiah;
+            return 'Rp ' + rupiah; // Return formatted string
+        }
+    </script>
+</body>
+</html>
